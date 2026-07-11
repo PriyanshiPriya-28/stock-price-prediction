@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Oracle — AI Trend Prediction</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --bg: #0b120f;
+        --panel: #121c18;
+        --panel-line: #23342c;
+        --gold: #c9a227;
+        --gold-soft: #e4c65a;
+        --gain: #2ed9a3;
+        --loss: #e5533d;
+        --ink: #eaf2ee;
+        --ink-dim: #9fb3aa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: 'IBM Plex Sans', Arial, sans-serif;
+        overflow-x: hidden;
+    }
+
+    /* ---------- Ticker tape signature element ---------- */
+    .ticker-tape {
+        background: #060a08;
+        border-bottom: 1px solid var(--panel-line);
+        overflow: hidden;
+        white-space: nowrap;
+        padding: 9px 0;
+    }
+    .ticker-track {
+        display: inline-block;
+        padding-left: 100%;
+        animation: scroll-left 34s linear infinite;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 13px;
+        letter-spacing: 0.03em;
+    }
+    .ticker-track span { margin-right: 42px; color: var(--ink-dim); }
+    .ticker-track span.up { color: var(--gain); }
+    .ticker-track span.down { color: var(--loss); }
+    @keyframes scroll-left {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-100%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .ticker-track { animation: none; padding-left: 0; }
+    }
+
+    /* ---------- Header ---------- */
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 22px 60px;
+        border-bottom: 1px solid var(--panel-line);
+    }
+    .logo {
+        font-family: 'Fraunces', serif;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .logo .mark {
+        color: var(--gold);
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 16px;
+        border: 1px solid var(--gold);
+        padding: 3px 7px;
+        border-radius: 4px;
+    }
+    nav a {
+        color: var(--ink-dim);
+        text-decoration: none;
+        margin-left: 26px;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        transition: color 0.25s;
+    }
+    nav a:hover { color: var(--gold-soft); }
+
+    /* ---------- Hero ---------- */
+    .hero {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 80px 24px 60px;
+        text-align: center;
+    }
+    .eyebrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin-bottom: 18px;
+    }
+    .hero h1 {
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 48px;
+        line-height: 1.15;
+        margin: 0 0 20px;
+        color: var(--ink);
+    }
+    .hero h1 em {
+        font-style: italic;
+        color: var(--gold-soft);
+    }
+    .hero p {
+        font-size: 17px;
+        color: var(--ink-dim);
+        line-height: 1.6;
+        margin-bottom: 40px;
+    }
+
+    /* ---------- Ticker input form ---------- */
+    .terminal-form {
+        display: flex;
+        gap: 10px;
+        background: var(--panel);
+        border: 1px solid var(--panel-line);
+        border-radius: 10px;
+        padding: 8px;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+    .terminal-form .field-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+    }
+    .terminal-form .field-wrap span {
+        font-family: 'IBM Plex Mono', monospace;
+        color: var(--ink-dim);
+        font-size: 15px;
+    }
+    .terminal-form input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--gold-soft);
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 12px 0;
+    }
+    .terminal-form input::placeholder { color: var(--ink-dim); }
+    .terminal-form button {
+        background: var(--gold);
+        color: #0b120f;
+        border: none;
+        border-radius: 7px;
+        padding: 0 26px;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.03em;
+        cursor: pointer;
+        transition: background 0.25s, transform 0.15s;
+    }
+    .terminal-form button:hover { background: var(--gold-soft); transform: translateY(-1px); }
+
+    /* ---------- Sections / chart panels ---------- */
+    .section {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 10px 24px 70px;
+    }
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--panel-line);
+        border-radius: 14px;
+        padding: 30px;
+        margin-top: 28px;
+    }
+    .panel-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin-bottom: 6px;
+    }
+    .panel h3 {
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 22px;
+        margin: 0 0 20px;
+        color: var(--ink);
+    }
+    .panel img {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid var(--panel-line);
+        display: block;
+    }
+
+    /* ---------- Ledger / data table ---------- */
+    .ledger-title {
+        font-family: 'Fraunces', serif;
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 4px;
+    }
+    .ledger-sub {
+        font-size: 13px;
+        color: var(--ink-dim);
+        margin-bottom: 20px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 13px;
+    }
+    table th, table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--panel-line);
+        text-align: right;
+        color: var(--ink-dim);
+        white-space: nowrap;
+    }
+    table th {
+        color: var(--gold-soft);
+        font-weight: 600;
+        text-align: right;
+        border-bottom: 1px solid var(--gold);
+    }
+    table th:first-child, table td:first-child { text-align: left; color: var(--ink); }
+    table tr:hover td { color: var(--ink); background: rgba(201,162,39,0.04); }
+
+    /* ---------- Download ---------- */
+    .download-link { margin-top: 24px; text-align: center; }
+    .btn-download {
+        display: inline-block;
+        background: transparent;
+        color: var(--gain);
+        border: 1px solid var(--gain);
+        padding: 12px 28px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+        transition: 0.25s;
+    }
+    .btn-download:hover { background: var(--gain); color: #0b120f; }
+
+    footer {
+        text-align: center;
+        padding: 30px 24px 50px;
+        color: var(--ink-dim);
+        font-size: 12px;
+        font-family: 'IBM Plex Mono', monospace;
+        letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 640px) {
+        header { padding: 18px 24px; }
+        .hero h1 { font-size: 34px; }
+        .terminal-form { flex-direction: column; }
+        .terminal-form button { padding: 14px 0; }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="ticker-tape">
+    <div class="ticker-track">
+        <span class="up">POWERGRID.NS ▲ 341.20</span>
+        <span class="down">TATASTEEL.NS ▼ 148.65</span>
+        <span class="up">RELIANCE.NS ▲ 2,981.40</span>
+        <span class="down">INFY.NS ▼ 1,542.10</span>
+        <span class="up">HDFCBANK.NS ▲ 1,678.90</span>
+        <span class="up">POWERGRID.NS ▲ 341.20</span>
+        <span class="down">TATASTEEL.NS ▼ 148.65</span>
+        <span class="up">RELIANCE.NS ▲ 2,981.40</span>
+        <span class="down">INFY.NS ▼ 1,542.10</span>
+        <span class="up">HDFCBANK.NS ▲ 1,678.90</span>
+    </div>
+</div>
+
+<header>
+    <div class="logo"><span class="mark">$</span> Stock Oracle</div>
+    <nav>
+        <a href="#charts">Charts</a>
+        <a href="#ledger">Data</a>
+    </nav>
+</header>
+
+<section class="hero">
+    <div class="eyebrow">AI-Powered Market Forecasting</div>
+    <h1>Read the trend <em>before</em> the market closes.</h1>
+    <p>Enter any NSE ticker and let a trained LSTM model chart momentum, moving averages, and a forward-looking price forecast — all in one terminal view.</p>
+
+    <form method="POST" class="terminal-form">
+        <div class="field-wrap">
+            <span>NSE:</span>
+            <input type="text" id="stock" name="stock" value="POWERGRID.NS" placeholder="e.g. TCS.NS" autocomplete="off">
+        </div>
+        <button type="submit">Analyze →</button>
+    </form>
+</section>
+
+<section class="section" id="charts">
+
+    {% if plot_path_ema_20_50 %}
+    <div class="panel">
+        <div class="panel-label">Chart 01 — Trend</div>
+        <h3>Closing Price vs Time (20 &amp; 50 Day EMA)</h3>
+        <img src="{{ url_for('static', filename='ema_20_50.png') }}" alt="EMA 20 & 50">
+    </div>
+    {% endif %}
+
+    {% if plot_path_ema_100_200 %}
+    <div class="panel">
+        <div class="panel-label">Chart 02 — Trend</div>
+        <h3>Closing Price vs Time (100 &amp; 200 Day EMA)</h3>
+        <img src="{{ url_for('static', filename='ema_100_200.png') }}" alt="EMA 100 & 200">
+    </div>
+    {% endif %}
+
+    {% if plot_path_prediction %}
+    <div class="panel">
+        <div class="panel-label">Chart 03 — Forecast</div>
+        <h3>Predicted vs Original Trend</h3>
+        <img src="{{ url_for('static', filename='stock_prediction.png') }}" alt="Prediction vs Original">
+    </div>
+    {% endif %}
+
+    {% if data_desc %}
+    <div class="panel" id="ledger">
+        <div class="ledger-title">Ledger</div>
+        <div class="ledger-sub">Descriptive statistics, full history to date</div>
+        <div class="table-wrap">
+            {{ data_desc | safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if dataset_link %}
+    <div class="download-link">
+        <a href="{{ url_for('download_file', filename=dataset_link.split('/')[-1]) }}" class="btn-download" download>Download full dataset (.csv)</a>
+    </div>
+    {% endif %}
+
+</section>
+
+<footer>STOCK ORACLE — FORECASTS ARE MODEL ESTIMATES, NOT FINANCIAL ADVICE</footer>
+
+</body>
+</html>
